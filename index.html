@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>ECharts</title>
+    <!-- 引入刚刚下载的 ECharts 文件 -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.0/dist/echarts.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+  </head>
+  <body>
+    <div>
+      <label for="countrySelect">Please Select Country:</label>
+      <select id="countrySelect"></select>
+    </div>
+    <div id="chartContainer" style="width: 500px;height:350px;"></div>
+    <script>
+        var countrySelect = document.getElementById('countrySelect');
+        var chartContainer = document.getElementById('chartContainer');
+        var myChart = echarts.init(chartContainer);
+        var data; // 将 data 声明为全局变量
+
+        // 读取本地CSV文件
+        Papa.parse('./owid-covid-data.csv', {
+          download: true,
+          complete: function(results) {
+            // 解析CSV数据
+            data = results.data;
+            var countries = [...new Set(data.map(row => row[2]).filter(value => value !== "location"))];
+            // 将国家列表添加到下拉菜单
+            countries.forEach(country => {
+              var option = document.createElement('option');
+              option.value = country;
+              option.text = country;
+              countrySelect.appendChild(option);
+            });
+
+            
+            // 默认选择第一个国家
+            var defaultCountry = countries[0];
+            updateChart(defaultCountry, data);
+            },
+        });
+
+        // 监听下拉菜单的变化
+        countrySelect.addEventListener('change', function() {
+          var selectedCountry = countrySelect.value;
+          updateChart(selectedCountry, data);
+        });
+        function updateChart(country, data) {
+            // 根据选择的国家筛选数据
+           var countryData = data.filter(row => row[2] === country);
+
+           // 提取日期、疫苗接种率和死亡率的数据
+          var dates = countryData.map(row => row[3]);
+          var vaccinationRates = countryData.map(row => parseFloat(row[44]));
+          var caseRates = countryData.map(row => parseFloat(row[11]));
+           // 创建图表配置
+           var option = {
+              title: {
+               text: 'Daily vaccination per hunderd people and\ndaily cases per million peolpe',
+               top: 5,
+             },
+              tooltip: {
+                trigger: 'axis',
+             },
+             legend: {
+                data: ['Vaccination Rate', 'Case Rate'],
+                top: 46,
+             },
+             xAxis: {
+                type: 'category',
+                data: dates,
+              },
+              yAxis: [
+               {
+                  type: 'value',
+                  name: 'Vaccination Rate',
+                  axisLabel: {
+                    formatter: '{value} ',
+                  },
+                },
+               {
+                  type: 'value',
+                  name: 'Case Rate',
+                  axisLabel: {
+                  formatter: '{value} ',
+                },
+                },
+              ],
+              grid: {
+                 top: 78, 
+              },
+              series: [
+                {
+                  name: 'Vaccination Rate',
+                  type: 'line',
+                  data: vaccinationRates,
+                  yAxisIndex: 0,
+                 },
+                {
+                  name: 'Case Rate',
+                  type: 'line',
+                  data: caseRates,
+                  yAxisIndex: 1,
+                },
+                ],
+                dataZoom: [
+                {
+                  type: 'slider', // 使用滑动条
+                  start: 0, // 滑动条起始位置（百分比）
+                  end: 100, // 滑动条结束位置（百分比）
+                  height: 8,
+                  xAxisIndex: [0], // 对第一个 x 轴使用滑动条
+                },
+                ],
+              };
+
+            // 使用配置项设置图表
+            myChart.setOption(option);
+           }
+       
+    </script>
+  </body>
+</html>
